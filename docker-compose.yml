@@ -1,0 +1,191 @@
+version: "3.9"
+
+services:
+  backend:
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    container_name: ${STACK_NAME?Variable not set}-backend
+    restart: on-failure
+    build:
+      context: ./src/backend
+      dockerfile: backend.dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    environment:
+      - SERVER_NAME=${DOMAIN?Variable not set}
+      - SERVER_HOST=https://${DOMAIN?Variable not set}
+      # Allow explicit env var override for tests
+      - SMTP_HOST=${SMTP_HOST}
+    networks:
+      - project-tier
+
+  celery:
+    container_name: ${STACK_NAME?Variable not set}-celery
+    restart: on-failure
+    env_file:
+      - .env
+    build:
+      context: ./src/backend
+      dockerfile: celery.worker.dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV}
+    depends_on:
+      - db
+      - redis
+      - backend
+    networks:
+      - project-tier
+    environment:
+      - SERVER_NAME=${DOMAIN?Variable not set}
+      - SERVER_HOST=https://${DOMAIN?Variable not set}d
+      # Allow explicit env var override for tests
+      - SMTP_HOST=${SMTP_HOST}
+
+  flower:
+    container_name: ${STACK_NAME?Variable not set}-flower
+    restart: on-failure
+    env_file:
+      - .env
+    build:
+      context: ./src/backend
+      dockerfile: celery.flower.dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV}
+    ports:
+      - "${FLOWER_PORT}:${FLOWER_PORT}"
+    depends_on:
+      - db
+      - redis
+      - celery
+      - backend
+
+    environment:
+      - SERVER_NAME=${DOMAIN?Variable not set}
+      - SERVER_HOST=https://${DOMAIN?Variable not set}d
+      # Allow explicit env var override for tests
+      - SMTP_HOST=${SMTP_HOST}
+    networks:
+      - project-tier
+
+  redis:
+    container_name: ${STACK_NAME?Variable not set}-redis
+    image: redis:alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    networks:
+      - project-tier
+    volumes:
+      - project-redis:/data
+
+  mailhog:
+    container_name: ${STACK_NAME?Variable not set}-mailhog
+    #    image: mailhog/mailhog
+    build:
+      context: ./src/mailhog
+      dockerfile: ./Dockerfile
+    ports:
+      - ${MAILHOG_SMTP_SERVER_PORT}:1025 # smtp server
+      - ${MAILHOG_WEB_UI_PORT}:8025 # web ui. Visit http://localhost:8025/ to check emails
+    restart: unless-stopped
+    networks:
+      - project-tier
+    environment:
+      - MH_HOSTNAME=${MH_HOSTNAME}
+      - MH_STORAGE=memory
+      - MH_OUTGOING_SMTP=/outgoing/outgoing.json
+
+  dozzle:
+    container_name: ${STACK_NAME?Variable not set}-dozzle
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - ${DOZZLE_PORT}:8080
+    networks:
+      - project-tier
+    environment:
+      - DOZZLE_LEVEL=trace
+    healthcheck:
+      test: [ "CMD", "/dozzle", "healthcheck" ]
+      interval: 3s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+  db:
+    container_name: ${STACK_NAME?Variable not set}-db
+    build:
+      context: ./src/db
+      dockerfile: db.dockerfile
+    command:
+      - -c
+      - max_prepared_transactions=100
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+      - ./src/db/backups:/backups
+    environment:
+      #       If you need to create multiple database you can add coma separated databases eg gis,data
+      - POSTGRES_DBNAME=${DATABASE_NAME},test
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASS=${DATABASE_PASSWORD}
+      - TARGET_DB=${DATABASE_NAME}_restore
+      - WITH_POSTGIS=false
+      - ALLOW_IP_RANGE=0.0.0.0/0
+      # Add extensions you need to be enabled by default in the DB. Default are the five specified below
+      - POSTGRES_MULTIPLE_EXTENSIONS=hstore
+    #       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
+    ports:
+      - "5432:5432"
+    restart: on-failure
+    networks:
+      - project-tier
+    healthcheck:
+      test: "exit 0"
+
+  pgadmin:
+    restart: always
+    container_name: ${STACK_NAME?Variable not set}-pg_admin
+    image: dpage/pgadmin4
+    networks:
+      - project-tier
+    depends_on:
+      - db
+    env_file:
+      - .env
+
+  dbbackups:
+    container_name: ${STACK_NAME?Variable not set}-dbbackups
+    image: kartoza/pg-backup:13.0
+    hostname: pg-backups
+    volumes:
+      - ./src/db/backups:/backups
+    environment:
+      - DUMPPREFIX=${DATABASE_NAME}
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASS=${DATABASE_PASSWORD}
+      - POSTGRES_PORT=${DATABASE_PORT}
+      - POSTGRES_HOST=db
+      - POSTGRES_DBNAME=${DATABASE_NAME}
+      - CRON_SCHEDULE="*/1 * * * *"
+    restart: on-failure
+    depends_on:
+      - db
+    networks:
+      - project-tier
+
+
+volumes:
+  project-redis:
+    driver: local
+  postgres_data:
+    driver: local
+
+networks:
+  project-tier:
+    driver: bridge

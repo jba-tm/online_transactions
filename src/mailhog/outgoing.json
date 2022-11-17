@@ -1,0 +1,11 @@
+{
+  "server name": {
+    "name": "Mail ru",
+    "host": "smtp.mail.ru",
+    "port": "587",
+    "email": "",
+    "username": "",
+    "password": "",
+    "mechanism": "PLAIN"
+  }
+}

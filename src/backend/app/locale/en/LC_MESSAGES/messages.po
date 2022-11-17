@@ -1,0 +1,60 @@
+# English translations for PROJECT.
+# Copyright (C) 2022 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2022-11-17 08:25+0500\n"
+"PO-Revision-Date: 2022-11-17 08:25+0500\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en\n"
+"Language-Team: en <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.11.0\n"
+
+#: app/contrib/account/api.py:27
+msgid "Success"
+msgstr ""
+
+#: app/contrib/account/api.py:44
+msgid "Incorrect email or password"
+msgstr ""
+
+#: app/contrib/account/api.py:47
+msgid "Inactive user"
+msgstr ""
+
+#: app/contrib/transaction/__init__.py:17
+msgid "processing"
+msgstr ""
+
+#: app/contrib/transaction/__init__.py:18
+msgid "completed"
+msgstr ""
+
+#: app/contrib/transaction/__init__.py:19
+msgid "rejected"
+msgstr ""
+
+#: app/core/exceptions.py:53
+msgid "Permission denied"
+msgstr ""
+
+#: app/core/exceptions.py:68
+msgid "Requested page does not exist"
+msgstr ""
+
+#: app/routers/dependency.py:77
+msgid "Your account is disabled"
+msgstr ""
+
+#: app/routers/router.py:10
+msgid "Hello"
+msgstr ""
+

@@ -1,0 +1,10 @@
+.idea/
+
+.vscode/
+
+
+# env files
+#.env
+
+# sensetive files
+secrets.json

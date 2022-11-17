@@ -1,0 +1,11 @@
+e.idea/
+__pycache__/
+
+.env
+
+sqlite.db
+test_sqlite.db
+
+secret.json
+
+.venv
